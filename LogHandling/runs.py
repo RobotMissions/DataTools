@@ -116,12 +116,6 @@ for root, dirs, files in os.walk(DIR):
         if filename.startswith("LOG"):
             NUM_LOGS += 1
 
-apisavename = DIR + "/" + "api_log.csv"
-
-if len(sys.argv) == 3:
-    apisavename = DIR + "/" + sys.argv[2]
-
-api_event_count = 0
 total_log_lines = 0
 num_unicode_errors = 0
 
