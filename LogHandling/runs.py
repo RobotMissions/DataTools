@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 
-# convert the raw logs from Bowie the robot to a .csv file
-# usage: python convert_data.py <<input dir>> <<output file.csv>>
+# Read the raw logs to find the "runs" - sequences of logs
+# with no gapes of more than 120 seconds.
+#
+# usage: runs.py <<input dir>>
+#
+# Assumes the logs are named LOGn.csv, where n is a number
+# and the first log is 0 and they are sequentially numbered.
 #
 # by Erin RobotGrrl for Robot Missions
 # robotmissions.org
 # June 7, 2018
+# 2018-09-03 Adapted by bjb for this new use
 
 import datetime
 import logging
