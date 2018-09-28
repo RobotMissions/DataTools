@@ -17,6 +17,7 @@ import datetime
 import logging
 import sys
 import os
+import re
 
 # XXX Assumed the times are 24-hour times ... example logs seem to bear that out
 def time_in_seconds_since_midnight(t1):
@@ -27,12 +28,22 @@ def time_in_seconds_since_midnight(t1):
 
 # XXX should we worry about midnight-rollover?
 def time_subtract(t1, t2):
-    '''Theoretically, we should only be reading times in chronologicla order
+    '''Theoretically, we should only be reading times in chronological order
 so the times will be monotonically increasing'''
     t2s = time_in_seconds_since_midnight(t2)
     t1s = time_in_seconds_since_midnight(t1)
     return t1s - t2s
-    
+
+def extract_logfile_num(fname):
+    '''Given a logfile name of type LOG_NN.csv, extract the NN and convert to integer'''
+    fname = fname[4:]
+    num_rex = re.compile(r'([0-9]+)')
+    mo = num_rex.search(fname)
+    if mo:
+        return int(mo.group(1))
+    else:
+        return None
+
 class RunDuration():
     def __init__(self, start, filename, stop=None):
         self.start = start
@@ -111,20 +122,26 @@ else:
 list_dir = os.listdir(DIR)
 
 NUM_LOGS = 0
+logfiles = list()
 for root, dirs, files in os.walk(DIR):  
     for filename in files:
         if filename.startswith("LOG"):
             NUM_LOGS += 1
+            print('Adding name {} to list'.format(filename))
+            logfiles.append(os.path.join(root, filename))
+
+logfiles = sorted(logfiles, key=extract_logfile_num)
 
 total_log_lines = 0
 num_unicode_errors = 0
 
 rd = RunDurations()
 
-for log_count in range(0, NUM_LOGS): # go through each of the log files
+#for log_count in range(0, NUM_LOGS): # go through each of the log files
+for total_filename in logfiles:
 
-    total_filename = DIR + "/LOG_" + str(log_count) + ".csv"
-    f = open(total_filename, 'r')
+    print('handling filename {}'.format(total_filename))
+    # total_filename = DIR + "/LOG_" + str(log_count) + ".csv"
     
     # count the number of lines in advance in case of the decode error
     # done this way to avoid crashing on this error
