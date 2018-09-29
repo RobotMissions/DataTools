@@ -77,7 +77,6 @@ class RunDurations():
             flag = ' '
         logger.debug('last time {}  now {} this duration is {} {}'.format(
             self.latest_time, tt, duration, flag))
-        self.latest_time = tt
         if self.this_run_duration:
             logger.debug('another time for this Duration')
             if duration > 120:
@@ -93,6 +92,7 @@ class RunDurations():
             # first time in first run
             logger.debug('Make a new Duration obj')
             self.this_run_duration = RunDuration(tt, filename)
+        self.latest_time = tt
 
     def close(self, filename):
         if self.this_run_duration:
