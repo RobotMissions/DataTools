@@ -126,7 +126,7 @@ list_dir = os.listdir(DIR)
 
 NUM_LOGS = 0
 logfiles = list()
-for root, dirs, files in os.walk(DIR):  
+for root, dirs, files in os.walk(DIR):
     for filename in files:
         if filename.startswith("LOG"):
             NUM_LOGS += 1
@@ -140,11 +140,9 @@ num_unicode_errors = 0
 
 rd = RunDurations()
 
-#for log_count in range(0, NUM_LOGS): # go through each of the log files
 for total_filename in logfiles:
 
     print('handling filename {}'.format(total_filename))
-    # total_filename = DIR + "/LOG_" + str(log_count) + ".csv"
     
     # count the number of lines in advance in case of the decode error
     # done this way to avoid crashing on this error
