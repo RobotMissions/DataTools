@@ -37,12 +37,15 @@ so the times will be monotonically increasing'''
 def extract_logfile_num(fname):
     '''Given a logfile name of type LOG_NN.csv, extract the NN and convert to integer'''
     fname = fname[4:]
-    num_rex = re.compile(r'([0-9]+)')
+    num_rex = re.compile(r'^.*/LOG_([0-9]+)\.[Cc][Ss][Vv]$')
     mo = num_rex.search(fname)
+    answer = None
     if mo:
-        return int(mo.group(1))
+        answer = int(mo.group(1))
     else:
-        return None
+        answer = None
+    print('extract_logfile_num:  {} {} {}'.format(fname, mo.group(1), answer))
+    return answer
 
 class RunDuration():
     def __init__(self, start, filename, stop=None):
