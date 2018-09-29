@@ -107,11 +107,15 @@ class RunDurations():
     
 
 def handle_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', default='ERROR',
-                        help='Verbosity level, DEBUG, INFO, WARNING, *ERROR, CRITICAL')
-    parser.add_argument('DIR',
-                        help='A directory which contains the log files to analyze')
+    parser = argparse.ArgumentParser(
+        description='Analyze Bowie logs, identify continuous runs as ' +
+        'series of timestamps with less than 2 minutes between each ' +
+        'timestamp')
+    parser.add_argument(
+        '-v', '--verbose', default='ERROR',
+        help='Verbosity level, DEBUG, INFO, WARNING, *ERROR, CRITICAL')
+    parser.add_argument(
+        'DIR', help='A directory which contains the log files to analyze')
     args = parser.parse_args()
     return args
 
@@ -122,16 +126,11 @@ logger = logging.getLogger('duration')
 logger.setLevel(loglevel)
 ch = logging.StreamHandler(sys.stderr)
 ch.setLevel(loglevel)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-
-# if len(sys.argv) >= 1:
-#     DIR = sys.argv[1]
-# else:
-#     print("Please specify a directory")
-#     exit()
 
 list_dir = os.listdir(args.DIR)
 
