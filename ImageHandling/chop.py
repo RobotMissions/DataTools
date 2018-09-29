@@ -75,7 +75,7 @@ def do_crop(args):
     logger.debug('CCC:  {}'.format(' '.join(command)))
 
 def handle_args():
-    parser = argparse.ArgumentParser(description='read json, write csv')
+    parser = argparse.ArgumentParser(description='Chop an image into 9 tiles (3x3).')
     parser.add_argument('-i', '--infile', default=None,
                         help='input filename (default stdin)')
     args = parser.parse_args()
