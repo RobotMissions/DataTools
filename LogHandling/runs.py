@@ -13,6 +13,7 @@
 # June 7, 2018
 # 2018-09-03 Adapted by bjb for this new use
 
+import argparse
 import datetime
 import logging
 import sys
@@ -44,7 +45,6 @@ def extract_logfile_num(fname):
         answer = int(mo.group(1))
     else:
         answer = None
-    print('extract_logfile_num:  {} {} {}'.format(fname, mo.group(1), answer))
     return answer
 
 class RunDuration():
@@ -106,7 +106,18 @@ class RunDurations():
         return answer
     
 
-loglevel = logging.ERROR
+def handle_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', default='ERROR',
+                        help='Verbosity level, DEBUG, INFO, WARNING, *ERROR, CRITICAL')
+    parser.add_argument('DIR',
+                        help='A directory which contains the log files to analyze')
+    args = parser.parse_args()
+    return args
+
+
+args = handle_args()
+loglevel = args.verbose
 logger = logging.getLogger('duration')
 logger.setLevel(loglevel)
 ch = logging.StreamHandler(sys.stderr)
@@ -116,21 +127,20 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
-if len(sys.argv) >= 1:
-    DIR = sys.argv[1]
-else:
-    print("Please specify a directory")
-    exit()
+# if len(sys.argv) >= 1:
+#     DIR = sys.argv[1]
+# else:
+#     print("Please specify a directory")
+#     exit()
 
-list_dir = os.listdir(DIR)
+list_dir = os.listdir(args.DIR)
 
 NUM_LOGS = 0
 logfiles = list()
-for root, dirs, files in os.walk(DIR):
+for root, dirs, files in os.walk(args.DIR):
     for filename in files:
         if filename.startswith("LOG"):
             NUM_LOGS += 1
-            print('Adding name {} to list'.format(filename))
             logfiles.append(os.path.join(root, filename))
 
 logfiles = sorted(logfiles, key=extract_logfile_num)
@@ -142,7 +152,7 @@ rd = RunDurations()
 
 for total_filename in logfiles:
 
-    print('handling filename {}'.format(total_filename))
+    logger.debug('handling filename {}'.format(total_filename))
     
     # count the number of lines in advance in case of the decode error
     # done this way to avoid crashing on this error
@@ -162,7 +172,7 @@ for total_filename in logfiles:
             counting_lines = False
             break
         number_of_lines += 1
-    print("{}  Number of lines = {}".format(total_filename, number_of_lines))
+    logger.info("{}  Number of lines = {}".format(total_filename, number_of_lines))
     f.close()
 
     f = open(total_filename, 'r', encoding="utf-8")
