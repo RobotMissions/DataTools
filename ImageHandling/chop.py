@@ -41,16 +41,6 @@ def get_dimensions(infile):
         raise Exception('Cannot get image dimensions')
     return int(width), int(height)
         
-def info_from_name(args):
-    rex = re.compile(r'([a-zA-Z0-9_.-]+)\.([a-zA-Z0-9]+)$')
-    mo = rex.search(args.infile)
-    if mo:
-        base = mo.group(1)
-        ext = mo.group(2)
-    else:
-        raise Exception('Cannot get file extension')
-    return base, ext
-
 # convert buttercups-2.jpg -crop 3x3@ +repage t%d.jpg
 # montage -mode concatenate -tile 3x t[0-8].jpg out.jpg
 def do_crop(args):
@@ -60,7 +50,7 @@ def do_crop(args):
     args.logger.debug('picture {} dimensions are w {} h {}'.format(
         args.infile, width, height))
 
-    basename, ext = info_from_name(args)
+    basename, ext = os.path.splitext(args.infile)
     logger.debug('{}  {}'.format(basename, ext))
 
     try:
@@ -70,7 +60,7 @@ def do_crop(args):
         raise
 
     command = ['convert', args.infile, '-crop', '3x3@', '+repage',
-               os.path.join(basename, 't%d.{}'.format(ext))]
+               os.path.join(basename, 't%d{}'.format(ext))]
     crop_output = subprocess.check_output(command).decode('ascii')
     logger.debug('CCC:  {}'.format(' '.join(command)))
 
