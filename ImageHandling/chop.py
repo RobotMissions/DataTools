@@ -40,7 +40,7 @@ def get_dimensions(infile):
     else:
         raise Exception('Cannot get image dimensions')
     return int(width), int(height)
-        
+
 # convert buttercups-2.jpg -crop 3x3@ +repage t%d.jpg
 # montage -mode concatenate -tile 3x t[0-8].jpg out.jpg
 def do_crop(args):
@@ -51,37 +51,40 @@ def do_crop(args):
         args.infile, width, height))
 
     basename, ext = os.path.splitext(args.infile)
-    logger.debug('{}  {}'.format(basename, ext))
+    args.logger.debug('{}  {}'.format(basename, ext))
 
     try:
         os.mkdir(basename)
     except FileExistsError as fee:
-        logger.exception('cannot create directory for tiles')
+        args.logger.exception('cannot create directory for tiles')
         raise
 
     command = ['convert', args.infile, '-crop', '3x3@', '+repage',
                os.path.join(basename, 't%d{}'.format(ext))]
     crop_output = subprocess.check_output(command).decode('ascii')
-    logger.debug('CCC:  {}'.format(' '.join(command)))
+    args.logger.debug('CCC:  {}'.format(' '.join(command)))
 
-def handle_args():
+def setup_logger(args):
+    logger = logging.getLogger('chop.py')
+    logger.myloglevel = args.verbosity
+    logger.setLevel(logger.myloglevel)
+    ch = logging.StreamHandler(sys.stderr)
+    ch.setLevel(logger.myloglevel)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    args.logger = logger
+
+def handle_args_and_create_logger():
     parser = argparse.ArgumentParser(description='Chop an image into 9 tiles (3x3).')
     parser.add_argument('-i', '--infile', default=None,
                         help='input filename (default stdin)')
+    parser.add_argument('-v', '--verbosity', default='ERROR',
+                        help='verbosity of logging:  DEBUG,INFO,WARNING,*ERROR,CRITICAL')
     args = parser.parse_args()
+    setup_logger(args)
     return args
 
-
-loglevel = logging.INFO
-logger = logging.getLogger('convert.py')
-logger.setLevel(loglevel)
-ch = logging.StreamHandler(sys.stderr)
-ch.setLevel(loglevel)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
 if '__main__' == __name__:
-    args = handle_args()
-    args.logger = logger
+    args = handle_args_and_create_logger()
     do_crop(args)
