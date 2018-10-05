@@ -13,10 +13,12 @@
 # June 7, 2018
 # 2018-09-03 Adapted by bjb for this new use
 
+import argparse
 import datetime
 import logging
 import sys
 import os
+import re
 
 # XXX Assumed the times are 24-hour times ... example logs seem to bear that out
 def time_in_seconds_since_midnight(t1):
@@ -27,12 +29,24 @@ def time_in_seconds_since_midnight(t1):
 
 # XXX should we worry about midnight-rollover?
 def time_subtract(t1, t2):
-    '''Theoretically, we should only be reading times in chronologicla order
+    '''Theoretically, we should only be reading times in chronological order
 so the times will be monotonically increasing'''
     t2s = time_in_seconds_since_midnight(t2)
     t1s = time_in_seconds_since_midnight(t1)
     return t1s - t2s
-    
+
+def extract_logfile_num(fname):
+    '''Given a logfile name of type LOG_NN.csv, extract the NN and convert to integer'''
+    fname = fname[4:]
+    num_rex = re.compile(r'^.*/LOG_([0-9]+)\.[Cc][Ss][Vv]$')
+    mo = num_rex.search(fname)
+    answer = None
+    if mo:
+        answer = int(mo.group(1))
+    else:
+        answer = None
+    return answer
+
 class RunDuration():
     def __init__(self, start, filename, stop=None):
         self.start = start
@@ -63,7 +77,6 @@ class RunDurations():
             flag = ' '
         logger.debug('last time {}  now {} this duration is {} {}'.format(
             self.latest_time, tt, duration, flag))
-        self.latest_time = tt
         if self.this_run_duration:
             logger.debug('another time for this Duration')
             if duration > 120:
@@ -79,6 +92,7 @@ class RunDurations():
             # first time in first run
             logger.debug('Make a new Duration obj')
             self.this_run_duration = RunDuration(tt, filename)
+        self.latest_time = tt
 
     def close(self, filename):
         if self.this_run_duration:
@@ -92,39 +106,52 @@ class RunDurations():
         return answer
     
 
-loglevel = logging.ERROR
+def handle_args():
+    parser = argparse.ArgumentParser(
+        description='Analyze Bowie logs, identify continuous runs as ' +
+        'series of timestamps with less than 2 minutes between each ' +
+        'timestamp')
+    parser.add_argument(
+        '-v', '--verbose', default='ERROR',
+        help='Verbosity level, DEBUG, INFO, WARNING, *ERROR, CRITICAL')
+    parser.add_argument(
+        'DIR', help='A directory which contains the log files to analyze')
+    args = parser.parse_args()
+    return args
+
+
+args = handle_args()
+loglevel = args.verbose
 logger = logging.getLogger('duration')
 logger.setLevel(loglevel)
 ch = logging.StreamHandler(sys.stderr)
 ch.setLevel(loglevel)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
-if len(sys.argv) >= 1:
-    DIR = sys.argv[1]
-else:
-    print("Please specify a directory")
-    exit()
-
-list_dir = os.listdir(DIR)
+list_dir = os.listdir(args.DIR)
 
 NUM_LOGS = 0
-for root, dirs, files in os.walk(DIR):  
+logfiles = list()
+for root, dirs, files in os.walk(args.DIR):
     for filename in files:
         if filename.startswith("LOG"):
             NUM_LOGS += 1
+            logfiles.append(os.path.join(root, filename))
+
+logfiles = sorted(logfiles, key=extract_logfile_num)
 
 total_log_lines = 0
 num_unicode_errors = 0
 
 rd = RunDurations()
 
-for log_count in range(0, NUM_LOGS): # go through each of the log files
+for total_filename in logfiles:
 
-    total_filename = DIR + "/LOG_" + str(log_count) + ".csv"
-    f = open(total_filename, 'r')
+    logger.debug('handling filename {}'.format(total_filename))
     
     # count the number of lines in advance in case of the decode error
     # done this way to avoid crashing on this error
@@ -144,7 +171,7 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
             counting_lines = False
             break
         number_of_lines += 1
-    print("{}  Number of lines = {}".format(total_filename, number_of_lines))
+    logger.info("{}  Number of lines = {}".format(total_filename, number_of_lines))
     f.close()
 
     f = open(total_filename, 'r', encoding="utf-8")

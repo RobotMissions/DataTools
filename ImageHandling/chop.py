@@ -40,16 +40,6 @@ def get_dimensions(infile):
     else:
         raise Exception('Cannot get image dimensions')
     return int(width), int(height)
-        
-def info_from_name(args):
-    rex = re.compile(r'([a-zA-Z0-9_.-]+)\.([a-zA-Z0-9]+)$')
-    mo = rex.search(args.infile)
-    if mo:
-        base = mo.group(1)
-        ext = mo.group(2)
-    else:
-        raise Exception('Cannot get file extension')
-    return base, ext
 
 # convert buttercups-2.jpg -crop 3x3@ +repage t%d.jpg
 # montage -mode concatenate -tile 3x t[0-8].jpg out.jpg
@@ -60,38 +50,41 @@ def do_crop(args):
     args.logger.debug('picture {} dimensions are w {} h {}'.format(
         args.infile, width, height))
 
-    basename, ext = info_from_name(args)
-    logger.debug('{}  {}'.format(basename, ext))
+    basename, ext = os.path.splitext(args.infile)
+    args.logger.debug('{}  {}'.format(basename, ext))
 
     try:
         os.mkdir(basename)
     except FileExistsError as fee:
-        logger.exception('cannot create directory for tiles')
+        args.logger.exception('cannot create directory for tiles')
         raise
 
     command = ['convert', args.infile, '-crop', '3x3@', '+repage',
-               os.path.join(basename, 't%d.{}'.format(ext))]
+               os.path.join(basename, 't%d{}'.format(ext))]
     crop_output = subprocess.check_output(command).decode('ascii')
-    logger.debug('CCC:  {}'.format(' '.join(command)))
+    args.logger.debug('CCC:  {}'.format(' '.join(command)))
 
-def handle_args():
-    parser = argparse.ArgumentParser(description='read json, write csv')
+def setup_logger(args):
+    logger = logging.getLogger('chop.py')
+    logger.myloglevel = args.verbosity
+    logger.setLevel(logger.myloglevel)
+    ch = logging.StreamHandler(sys.stderr)
+    ch.setLevel(logger.myloglevel)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    args.logger = logger
+
+def handle_args_and_create_logger():
+    parser = argparse.ArgumentParser(description='Chop an image into 9 tiles (3x3).')
     parser.add_argument('-i', '--infile', default=None,
                         help='input filename (default stdin)')
+    parser.add_argument('-v', '--verbosity', default='ERROR',
+                        help='verbosity of logging:  DEBUG,INFO,WARNING,*ERROR,CRITICAL')
     args = parser.parse_args()
+    setup_logger(args)
     return args
 
-
-loglevel = logging.INFO
-logger = logging.getLogger('convert.py')
-logger.setLevel(loglevel)
-ch = logging.StreamHandler(sys.stderr)
-ch.setLevel(loglevel)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
 if '__main__' == __name__:
-    args = handle_args()
-    args.logger = logger
+    args = handle_args_and_create_logger()
     do_crop(args)
