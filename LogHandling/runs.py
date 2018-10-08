@@ -84,9 +84,7 @@ class RunDurations():
 
                 logger.debug('close up last run and start a new one')
                 # start this new run
-                self.this_run_duration.stop = self.latest_time
-                self.this_run_duration.filename_end = filename
-                self.runs.append(self.this_run_duration)
+                self.close(filename)
                 self.this_run_duration = RunDuration(tt, filename)
         else:
             # first time in first run
