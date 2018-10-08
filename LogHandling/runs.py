@@ -54,6 +54,9 @@ class RunDuration():
         self.filename_start = filename
         self.filename_end = ''
 
+    def duration(self):
+        return time_subtract(self.stop, self.start)
+
     def __str__(self):
         return '{} {} {} {} {}'.format(
             self.start, self.stop,
@@ -67,6 +70,7 @@ class RunDurations():
         self.this_run_duration = None
 
     def account_for_time(self, time_string, filename):
+        answer = 0
         logger.debug('account for time:  {}  {}'.format(filename, time_string))
         hh, mm, ss = time_string.split(':')
         tt = datetime.time(hour=int(hh), minute=int(mm), second=int(ss))
@@ -85,18 +89,21 @@ class RunDurations():
                 logger.debug('close up last run and start a new one')
                 # start this new run
                 self.close(filename)
+                answer = self.this_run_duration.duration()
                 self.this_run_duration = RunDuration(tt, filename)
         else:
             # first time in first run
             logger.debug('Make a new Duration obj')
             self.this_run_duration = RunDuration(tt, filename)
         self.latest_time = tt
+        return answer
 
     def close(self, filename):
         if self.this_run_duration:
             self.this_run_duration.filename_end = filename
             self.this_run_duration.stop = self.latest_time
             self.runs.append(self.this_run_duration)
+            return self.this_run_duration.duration()
 
     def __str__(self):
         answer = ''
@@ -146,6 +153,7 @@ total_log_lines = 0
 num_unicode_errors = 0
 
 rd = RunDurations()
+total_run_time = 0
 
 for total_filename in logfiles:
 
@@ -200,11 +208,15 @@ for total_filename in logfiles:
         item = splittystring[0]
 
         if item != ' ' and item != '' and item != '\n':
-            rd.account_for_time(item, total_filename)
+            this_run_time = rd.account_for_time(item, total_filename)
+            total_run_time += this_run_time
+            # print('this_run_time:  {}; total so far {}'.format(this_run_time, total_run_time))
 
-rd.close(total_filename)
+
+total_run_time += rd.close(total_filename)
 print("-----------------");
 
 print('run durations')
 print('{}'.format(rd))
+print('sum of run durations:  {}'.format(total_run_time))
 print('number of unicode errors {}'.format(num_unicode_errors))
