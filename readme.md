@@ -10,7 +10,7 @@ This repository is a work in progress, with a big thanks to @bjb for her work on
 
 **LogHandling/runs.py**
 
-This script will calculate how long the Bowie runs have been. This is useful to double check for any times when Bowie might have experienced difficulty by turning off or something. It can serve as a way to highlight the time. The log files do not have to start at 0, but they do have to be sequential.
+This script will calculate how long the Bowie runs have been. A continuous run is defined by timestamps with less than 2 mins between each. This is useful to double check for any times when Bowie might have experienced difficulty by turning off or something. It can serve as a way to highlight the time. The log files do not have to start at 0, but they do have to be sequential. 
 
 1. Locate the folder of your logs
 
