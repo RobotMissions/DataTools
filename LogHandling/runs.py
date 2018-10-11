@@ -1,17 +1,31 @@
 #!/usr/bin/env python3
 
 # Read the raw logs to find the "runs" - sequences of logs
-# with no gapes of more than 120 seconds.
+# with no gaps of more than 120 seconds.
 #
 # usage: runs.py <<input dir>>
 #
 # Assumes the logs are named LOGn.csv, where n is a number
 # and the first log is 0 and they are sequentially numbered.
 #
-# by Erin RobotGrrl for Robot Missions
+# by bjb
+# September 2018
+# based on code by Erin RobotGrrl for Robot Missions
 # robotmissions.org
 # June 7, 2018
-# 2018-09-03 Adapted by bjb for this new use
+
+# RunDurations is a list of RunDuration objects (only one 
+# RunDurations for the program).
+# Each line that is read from the log, 
+# rd.account_for_time(item, total_filename) is called.
+# Then, account_for_time determines if it is the end of the
+# duration, if so it calculates the run duration, and stores
+# the RunDuration object into RunDurations.
+# When the run is closed off, the duration is returned and the
+# ending filename, and end time is noted. 
+# 
+#
+
 
 import argparse
 import datetime
@@ -47,6 +61,18 @@ def extract_logfile_num(fname):
         answer = None
     return answer
 
+def humanReadableTime(time_in_seconds):
+    value = 0.0
+    if time_in_seconds >= 3600:
+        value = time_in_seconds / 3600.0
+        suffix = "hours"
+    elif time_in_seconds >= 60:
+        value = time_in_seconds / 60.0
+        suffix = "minutes"
+    else:
+        suffix = "seconds"
+    return "Bowie drive duration of {:.2f} {}.".format(value, suffix)
+
 class RunDuration():
     def __init__(self, start, filename, stop=None):
         self.start = start
@@ -63,11 +89,29 @@ class RunDuration():
             time_subtract(self.stop, self.start),
             self.filename_start, self.filename_end)
 
+    def printAsCSV(self, run_index):
+        foldername = self.filename_start.split('/')[-2]
+        # FUTURE: If anyone has the time, this could use a csv library instead of hand-coded
+        print('{},{},{},{},{},{},{},{}'.format(
+            foldername, run_index, humanReadableTime(self.duration()), 
+            self.duration(), self.start, self.stop, self.filename_start, 
+            self.filename_end))
+
+
+
 class RunDurations():
     def __init__(self):
         self.latest_time=datetime.time(hour=0, minute=0, second=0)
         self.runs = list()
         self.this_run_duration = None
+
+    def printAsCSV(self):
+        # FUTURE: If anyone has the time, this could use a csv library instead of hand-coded
+        print('date,run number,human readable,seconds,start,stop,log file start,log file end')
+        run_index = 0
+        for rd in self.runs:
+            rd.printAsCSV(run_index)
+            run_index = run_index+1
 
     def account_for_time(self, time_string, filename):
         answer = 0
@@ -85,11 +129,10 @@ class RunDurations():
             logger.debug('another time for this Duration')
             if duration > 120:
                 # close up the last run
-
                 logger.debug('close up last run and start a new one')
+                # store the duration
+                answer = self.close(filename)
                 # start this new run
-                self.close(filename)
-                answer = self.this_run_duration.duration()
                 self.this_run_duration = RunDuration(tt, filename)
         else:
             # first time in first run
@@ -210,6 +253,8 @@ for total_filename in logfiles:
         if item != ' ' and item != '' and item != '\n':
             this_run_time = rd.account_for_time(item, total_filename)
             total_run_time += this_run_time
+
+
             # print('this_run_time:  {}; total so far {}'.format(this_run_time, total_run_time))
 
 
@@ -219,4 +264,13 @@ print("-----------------");
 print('run durations')
 print('{}'.format(rd))
 print('sum of run durations:  {}'.format(total_run_time))
+print('{}'.format(humanReadableTime(total_run_time)))
 print('number of unicode errors {}'.format(num_unicode_errors))
+
+print("--------------")
+
+rd.printAsCSV()
+
+
+
+
