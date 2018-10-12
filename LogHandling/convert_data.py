@@ -3,7 +3,10 @@
 #
 # by Erin RobotGrrl for Robot Missions
 # robotmissions.org
-# June 7, 2018
+# Written August 13, 2016
+# Updated June 7, 2018 - Revised parsing with unicode decode
+#                        errors, and added more sensors
+# Updated October 12, 2018
 
 import sys
 import os
@@ -28,16 +31,21 @@ for root, dirs, files in os.walk(DIR):
 
 savename = DIR + "/" + "environmental_log.csv"
 apisavename = DIR + "/" + "api_log.csv"
+autonsavename = DIR + "/" + "auton_log.csv"
 
-if len(sys.argv) == 3:
+if len(sys.argv) >= 3:
     savename = DIR + "/" + sys.argv[2]
-    apisavename = DIR + "/" + sys.argv[2]
+    apisavename = DIR + "/" + sys.argv[3]
+    autonsavename = DIR + "/" + sys.argv[4]
 
 outfile = open(savename, 'w')
 apioutfile = open(apisavename, 'w')
-api_event_count = 0
+autonoutfile = open(autonsavename, 'w')
 total_log_lines = 0
+api_event_count = 0
+auton_event_count = 0
 num_unicode_errors = 0
+urad_ind_start = 33 # the index that the uradmonitor data starts on
 
 for log_count in range(0, NUM_LOGS): # go through each of the log files
 
@@ -86,7 +94,6 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
         num_unicode_errors += 1
         continue
 
-    #for line in f: # go through each of the lines
     for k in range(0, number_of_lines):
         
         # sometimes receive this error
@@ -103,7 +110,7 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
         splittystring = s.split(",")
         
         datum = []
-        for i in range(0, 37+1): #todo: will this cause an error for the api event lines?
+        for i in range(0, urad_ind_start+6+1): #todo: will this cause an error for the api event lines?
             datum.append(0)
         append_count = 0
         for item in splittystring:
@@ -116,6 +123,8 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
                 skippy = False
 
         event_identifier = datum[2]
+
+        # parsing API command
         if event_identifier == "###":
             action_specifier = datum[3]
             cmd1 = datum[4]
@@ -138,6 +147,45 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
             total_log_lines = total_log_lines+1
             api_event_count += 1
 
+        # parsing autonomous operation event
+        elif event_identifier == "$$$":
+            
+            marker_id = -1
+            marker_width = -1
+            auton_state = ""
+            item = ""
+
+            if datum[3] == "SEARCHING":
+                auton_state = datum[3]
+                item += str(datum[0]) + ","
+                item += str(datum[1]) + ","
+                item += str(auton_state)
+            if datum[5] == " FOLLOW_NAV": # yea, theres a space before...
+                marker_id = datum[3]
+                marker_width = datum[4]
+                auton_state = datum[5]
+                item += str(datum[0]) + ","
+                item += str(datum[1]) + ","
+                item += str(auton_state) + ","
+                item += str(marker_id) + ","
+                item += str(marker_width)
+            elif datum[5] == " PERFORM_ACTION": # yea, theres a space before...
+                marker_id = datum[3]
+                marker_width = datum[4]
+                auton_state = datum[5]
+                item += str(datum[0]) + ","
+                item += str(datum[1]) + ","
+                item += str(auton_state) + ","
+                item += str(marker_id) + ","
+                item += str(marker_width)
+                
+            autonoutfile.write("%s\n" % (item))
+            print("wrote autonomous event #%d line #%d from log #%d" % (auton_event_count, linenum, log_count))
+            linenum = linenum+1
+            total_log_lines = total_log_lines+1
+            auton_event_count += 1
+
+        # parsing regular log line
         else:
             time = datum[0]
             motor_a_speed = datum[1]
@@ -170,43 +218,45 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
             comm_arduino_latency = datum[28]
             humidity = datum[29]
             temperature = datum[30]
+            uv = datum[31]
+            wind = datum[32]
+            
+            if append_count >= urad_ind_start+6: # checking to see if the uradmonitor data was logged properly
 
-            if append_count >= 37: # checking to see if the uradmonitor data was logged properly
-
-                uradmonitor_data_time = str(datum[31])
-                uradmonitor_pm25_raw = str(datum[32])
-                uradmonitor_pm10_raw = str(datum[33])
-                uradmonitor_o2_raw = str(datum[34])
-                uradmonitor_no2_raw = str(datum[35])
-                uradmonitor_so2_raw = str(datum[36])
-                uradmonitor_nh3_raw = str(datum[37])
+                uradmonitor_data_time = str(datum[urad_ind_start])
+                uradmonitor_pm25_raw = str(datum[urad_ind_start+1])
+                uradmonitor_pm10_raw = str(datum[urad_ind_start+2])
+                uradmonitor_o2_raw = str(datum[urad_ind_start+3])
+                uradmonitor_no2_raw = str(datum[urad_ind_start+4])
+                uradmonitor_so2_raw = str(datum[urad_ind_start+5])
+                uradmonitor_nh3_raw = str(datum[urad_ind_start+6])
 
                 tempstr = uradmonitor_data_time.split(":")
                 uradmonitor_time = tempstr[len(tempstr)-1]
-                datum[31] = uradmonitor_time
+                datum[urad_ind_start] = uradmonitor_time
 
                 tempstr = uradmonitor_pm25_raw.split(":")
                 uradmonitor_pm25 = tempstr[1]
-                datum[32] = uradmonitor_pm25
+                datum[urad_ind_start+1] = uradmonitor_pm25
 
                 tempstr = str(uradmonitor_pm10_raw).split(":")
                 uradmonitor_pm10 = tempstr[1]
-                datum[33] = uradmonitor_pm10
+                datum[urad_ind_start+2] = uradmonitor_pm10
 
                 tempstr = str(uradmonitor_o2_raw).split(":")
                 uradmonitor_o2 = tempstr[1]
                 o2_val = float(uradmonitor_o2)
-                o2_val += 10.0
+                o2_val += 10.0 # calibration adjustment
                 uradmonitor_o2 = str(o2_val)
-                datum[34] = uradmonitor_o2
+                datum[urad_ind_start+3] = uradmonitor_o2
 
                 tempstr = str(uradmonitor_no2_raw).split(":")
                 uradmonitor_no2 = tempstr[1]
-                datum[35] = uradmonitor_no2
+                datum[urad_ind_start+4] = uradmonitor_no2
 
                 tempstr = str(uradmonitor_so2_raw).split(":")
                 uradmonitor_so2 = tempstr[1]
-                datum[36] = uradmonitor_so2
+                datum[urad_ind_start+5] = uradmonitor_so2
 
                 if uradmonitor_nh3_raw != '0':
                     tempstr = str(uradmonitor_nh3_raw).split(":")
@@ -214,14 +264,14 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
                         uradmonitor_nh3 = tempstr[1]
                     if "\n" in uradmonitor_nh3:
                         uradmonitor_nh3 = uradmonitor_nh3[:-2]
-                    datum[37] = uradmonitor_nh3
+                    datum[urad_ind_start+6] = uradmonitor_nh3
                 else:
                     # this is actually an indicator that the whole line is borked
-                    for i in range(31, 37):
+                    for i in range(urad_ind_start, urad_ind_start+6+1):
                         datum[i] = "N/A"
 
             else:
-                for i in range(31, 37):
+                for i in range(urad_ind_start, urad_ind_start+6+1):
                     datum[i] = "N/A"
 
             item = ""
@@ -238,5 +288,14 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
 
 outfile.close()
 apioutfile.close()
-print("-----------------");
-print("job complete. wrote %d total lines (%d were api events), with %d unicode errors" % (total_log_lines, api_event_count, num_unicode_errors));
+autonoutfile.close()
+print("-----------------")
+print("job complete. wrote %d total lines (%d were api events, %d were auton events), with %d unicode errors" % (total_log_lines, api_event_count, auton_event_count, num_unicode_errors));
+
+
+
+
+
+
+
+
