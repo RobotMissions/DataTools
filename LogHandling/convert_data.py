@@ -11,6 +11,13 @@
 import sys
 import os
 
+# change your current robot (or logging profile) here
+# 0 = OG Bowie
+# 1 = Yellow Bowie
+# 2 = time, gps, temperature, altitude
+LOGGING_PROFILE = 2
+
+
 #print "This is the name of the script: ", sys.argv[0]
 #print "Number of arguments: ", len(sys.argv)
 #print("The arguments are: " , str(sys.argv))
@@ -47,11 +54,210 @@ auton_event_count = 0
 num_unicode_errors = 0
 urad_ind_start = 33 # the index that the uradmonitor data starts on
 
+
+LOG_TIME = True
+LOG_MOTOR_A_SPEED = True
+LOG_MOTOR_A_DIR = True
+LOG_MOTOR_B_SPEED = True
+LOG_MOTOR_B_DIR = True
+LOG_MOTOR_CURRENT = True
+LOG_SERVO_POS_ARM_L = True
+LOG_SERVO_POS_ARM_R = True
+LOG_SERVO_POS_END = True
+LOG_SERVO_POS_HOPPER = True
+LOG_SERVO_POS_LID = True
+LOG_SERVO_POS_EXTRA = True
+LOG_SERVO_CURRENT = True
+LOG_LED_FRONT_L = True
+LOG_LED_FRONT_R = True
+LOG_LED_BACK_L = True
+LOG_LED_BACK_R = True
+LOG_IMU_PITCH = True
+LOG_IMU_ROLL = True
+LOG_IMU_YAW = True
+LOG_COMPASS_HEADING = True
+LOG_GPS_SATS = True
+LOG_GPS_HDOP = True
+LOG_GPS_LATITUDE = True
+LOG_GPS_LONGITUDE = True
+LOG_GPS_ALTITUDE = True
+LOG_BATTERY = True
+LOG_COMM_XBEE_LATENCY = True
+LOG_COMM_ARDUINO_LATENCY = True
+LOG_HUMIDITY = True
+LOG_TEMPERATURE = True
+LOG_UV = True
+LOG_WIND = True
+LOG_URADMONITOR = True # FUTURE: might want to break this down to individual sensors
+
+
+# turn off what isn't needed in the environmental log here
+if LOGGING_PROFILE == 0: #OG BOWIE
+
+    LOG_TIME = True
+
+elif LOGGING_PROFILE == 1: # YELLOW BOWIE
+
+    LOG_UV = False
+    LOG_WIND = False
+    LOG_URADMONITOR = False
+
+elif LOGGING_PROFILE == 2: # time, gps, temperature, altitude
+
+    LOG_MOTOR_A_SPEED = False
+    LOG_MOTOR_A_DIR = False
+    LOG_MOTOR_B_SPEED = False
+    LOG_MOTOR_B_DIR = False
+    LOG_MOTOR_CURRENT = False
+    LOG_SERVO_POS_ARM_L = False
+    LOG_SERVO_POS_ARM_R = False
+    LOG_SERVO_POS_END = False
+    LOG_SERVO_POS_HOPPER = False
+    LOG_SERVO_POS_LID = False
+    LOG_SERVO_POS_EXTRA = False
+    LOG_SERVO_CURRENT = False
+    LOG_LED_FRONT_L = False
+    LOG_LED_FRONT_R = False
+    LOG_LED_BACK_L = False
+    LOG_LED_BACK_R = False
+    LOG_IMU_PITCH = False
+    LOG_IMU_ROLL = False
+    LOG_IMU_YAW = False
+    LOG_COMPASS_HEADING = False
+    LOG_GPS_SATS = False
+    LOG_GPS_HDOP = False
+    LOG_BATTERY = False
+    LOG_COMM_XBEE_LATENCY = False
+    LOG_COMM_ARDUINO_LATENCY = False
+    LOG_HUMIDITY = False
+    LOG_UV = False
+    LOG_WIND = False
+    LOG_URADMONITOR = False
+
+
+
+
+def checkToIncludeThisItem(point_index):
+
+    if LOG_TIME == True and point_index == 0:
+        return True
+
+    if LOG_MOTOR_A_SPEED == True and point_index == 1:
+        return True
+
+    if LOG_MOTOR_A_DIR == True and point_index == 2:
+        return True
+
+    if LOG_MOTOR_B_SPEED == True and point_index == 3:
+        return True
+
+    if LOG_MOTOR_B_DIR == True and point_index == 4:
+        return True
+
+    if LOG_MOTOR_CURRENT == True and point_index == 5:
+        return True
+
+    if LOG_SERVO_POS_ARM_L == True and point_index == 6:
+        return True
+
+    if LOG_SERVO_POS_ARM_R == True and point_index == 7:
+        return True
+
+    if LOG_SERVO_POS_END == True and point_index == 8:
+        return True
+
+    if LOG_SERVO_POS_HOPPER == True and point_index == 9:
+        return True
+
+    if LOG_SERVO_POS_LID == True and point_index == 10:
+        return True
+
+    if LOG_SERVO_POS_EXTRA == True and point_index == 11:
+        return True
+
+    if LOG_SERVO_CURRENT == True and point_index == 12:
+        return True
+
+    if LOG_LED_FRONT_L == True and point_index == 13:
+        return True
+
+    if LOG_LED_FRONT_R == True and point_index == 14:
+        return True
+
+    if LOG_LED_BACK_L == True and point_index == 15:
+        return True
+
+    if LOG_LED_BACK_R == True and point_index == 16:
+        return True
+
+    if LOG_IMU_PITCH == True and point_index == 17:
+        return True
+
+    if LOG_IMU_ROLL == True and point_index == 18:
+        return True
+
+    if LOG_IMU_YAW == True and point_index == 19:
+        return True
+
+    if LOG_COMPASS_HEADING == True and point_index == 20:
+        return True
+
+    if LOG_GPS_SATS == True and point_index == 21:
+        return True
+
+    if LOG_GPS_HDOP == True and point_index == 22:
+        return True
+
+    if LOG_GPS_LATITUDE == True and point_index == 23:
+        return True
+
+    if LOG_GPS_LONGITUDE == True and point_index == 24:
+        return True
+
+    if LOG_GPS_ALTITUDE == True and point_index == 25:
+        return True
+
+    if LOG_BATTERY == True and point_index == 26:
+        return True
+
+    if LOG_COMM_XBEE_LATENCY == True and point_index == 27:
+        return True
+
+    if LOG_COMM_ARDUINO_LATENCY == True and point_index == 28:
+        return True
+
+    if LOG_HUMIDITY == True and point_index == 29:
+        return True
+
+    if LOG_TEMPERATURE == True and point_index == 30:
+        return True
+
+    if LOG_UV == True and point_index == 31:
+        return True
+
+    if LOG_WIND == True and point_index == 32:
+        return True
+
+    if LOG_URADMONITOR == True and point_index >= 33:
+        return True
+
+    return False
+
+
+
+
+
+
+
+
+
 for log_count in range(0, NUM_LOGS): # go through each of the log files
 
     total_filename = DIR + "/LOG_" + str(log_count) + ".csv"
     f = open(total_filename, 'r')
     
+    # TODO: This has to be updated with printing the proper
+    # headers according to the logging profile
     if log_count == 0:
         s1 = f.readline()
         s1 = s1[:-1]
@@ -195,10 +401,10 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
             motor_current = datum[5]
             servo_pos_arm_l = datum[6]
             servo_pos_arm_r = datum[7]
-            servo_pos_arm_end = datum[8]
-            servo_pos_arm_hopper = datum[9]
-            servo_pos_arm_lid = datum[10]
-            servo_pos_arm_extra = datum[11]
+            servo_pos_end = datum[8]
+            servo_pos_hopper = datum[9]
+            servo_pos_lid = datum[10]
+            servo_pos_extra = datum[11]
             servo_current = datum[12]
             led_front_l = datum[13]
             led_front_r = datum[14]
@@ -275,8 +481,13 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
                     datum[i] = "N/A"
 
             item = ""
+            include_item = False
+            point_index = 0
             for point in datum:
-                item += str(point) + ","
+                include_item = checkToIncludeThisItem(point_index)
+                if include_item == True:
+                    item += str(point) + ","
+                point_index = point_index+1
             item = item[:-1]
 
             if skippy == False:
@@ -291,8 +502,6 @@ apioutfile.close()
 autonoutfile.close()
 print("-----------------")
 print("job complete. wrote %d total lines (%d were api events, %d were auton events), with %d unicode errors" % (total_log_lines, api_event_count, auton_event_count, num_unicode_errors));
-
-
 
 
 
