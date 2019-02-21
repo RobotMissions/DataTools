@@ -6,7 +6,8 @@
 # Written August 13, 2016
 # Updated June 7, 2018 - Revised parsing with unicode decode
 #                        errors, and added more sensors
-# Updated October 12, 2018
+# Updated October 12, 2018 - In preparation for Hackaday Supercon
+# Updated February 14, 2019 - Adding different logging profiles
 
 import sys
 import os
@@ -15,7 +16,9 @@ import os
 # 0 = OG Bowie
 # 1 = Yellow Bowie
 # 2 = time, gps, temperature, altitude
-LOGGING_PROFILE = 2
+# 3 = time, gps, temperature (Mappa.js testing)
+# 4 = all
+LOGGING_PROFILE = 3
 
 
 #print "This is the name of the script: ", sys.argv[0]
@@ -133,6 +136,44 @@ elif LOGGING_PROFILE == 2: # time, gps, temperature, altitude
     LOG_UV = False
     LOG_WIND = False
     LOG_URADMONITOR = False
+
+elif LOGGING_PROFILE == 3: # time, gps, temperature
+
+    LOG_MOTOR_A_SPEED = False
+    LOG_MOTOR_A_DIR = False
+    LOG_MOTOR_B_SPEED = False
+    LOG_MOTOR_B_DIR = False
+    LOG_MOTOR_CURRENT = False
+    LOG_SERVO_POS_ARM_L = False
+    LOG_SERVO_POS_ARM_R = False
+    LOG_SERVO_POS_END = False
+    LOG_SERVO_POS_HOPPER = False
+    LOG_SERVO_POS_LID = False
+    LOG_SERVO_POS_EXTRA = False
+    LOG_SERVO_CURRENT = False
+    LOG_LED_FRONT_L = False
+    LOG_LED_FRONT_R = False
+    LOG_LED_BACK_L = False
+    LOG_LED_BACK_R = False
+    LOG_IMU_PITCH = False
+    LOG_IMU_ROLL = False
+    LOG_IMU_YAW = False
+    LOG_COMPASS_HEADING = False
+    LOG_GPS_SATS = False
+    LOG_GPS_HDOP = False
+    LOG_GPS_ALTITUDE = False
+    LOG_BATTERY = False
+    LOG_COMM_XBEE_LATENCY = False
+    LOG_COMM_ARDUINO_LATENCY = False
+    LOG_HUMIDITY = False
+    LOG_UV = False
+    LOG_WIND = False
+    LOG_URADMONITOR = False
+
+elif LOGGING_PROFILE == 4: # all
+    
+    LOG_TIME = True
+    # (...by default, all of these are true)
 
 
 
@@ -259,11 +300,17 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
     # TODO: This has to be updated with printing the proper
     # headers according to the logging profile
     if log_count == 0:
+
         s1 = f.readline()
         s1 = s1[:-1]
         s1 += ",pm 2.5,pm 10,O2,NO2,SO2,NH3" # adding these to the headers
         #print(s1)
-        outfile.write("%s\n" % (s1))
+        
+        if LOGGING_PROFILE == 4:
+            outfile.write("%s\n" % (s1))
+        elif LOGGING_PROFILE == 3:
+            outfile.write("Time,GPS Latitude,GPS Longitude,Temperature\n")
+
         linenum = 1
         total_log_lines = total_log_lines+1
 
