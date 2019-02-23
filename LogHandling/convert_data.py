@@ -8,9 +8,11 @@
 #                        errors, and added more sensors
 # Updated October 12, 2018 - In preparation for Hackaday Supercon
 # Updated February 14, 2019 - Adding different logging profiles
+# Updated February 21, 2019 - Counting the distance travelled between line items
 
 import sys
 import os
+import math
 
 # change your current robot (or logging profile) here
 # 0 = OG Bowie
@@ -56,6 +58,10 @@ api_event_count = 0
 auton_event_count = 0
 num_unicode_errors = 0
 urad_ind_start = 33 # the index that the uradmonitor data starts on
+prev_gps_lat = 0
+prev_gps_lon = 0
+num_gps_incorrect = 0
+total_distance = 0
 
 
 LOG_TIME = True
@@ -92,6 +98,7 @@ LOG_TEMPERATURE = True
 LOG_UV = True
 LOG_WIND = True
 LOG_URADMONITOR = True # FUTURE: might want to break this down to individual sensors
+LOG_DISTANCE = True
 
 
 # turn off what isn't needed in the environmental log here
@@ -136,8 +143,9 @@ elif LOGGING_PROFILE == 2: # time, gps, temperature, altitude
     LOG_UV = False
     LOG_WIND = False
     LOG_URADMONITOR = False
+    LOG_DISTANCE = False
 
-elif LOGGING_PROFILE == 3: # time, gps, temperature
+elif LOGGING_PROFILE == 3: # time, gps, temperature, distance
 
     LOG_MOTOR_A_SPEED = False
     LOG_MOTOR_A_DIR = False
@@ -279,7 +287,10 @@ def checkToIncludeThisItem(point_index):
     if LOG_WIND == True and point_index == 32:
         return True
 
-    if LOG_URADMONITOR == True and point_index >= 33:
+    if LOG_URADMONITOR == True and point_index >= 33 and point_index < 40:
+        return True
+
+    if LOG_DISTANCE == True and point_index == 40:
         return True
 
     return False
@@ -287,6 +298,35 @@ def checkToIncludeThisItem(point_index):
 
 
 
+def distanceBetween(lat1, long1, lat2, long2):
+
+    lat1 = float(lat1)
+    long1 = float(long1)
+    lat2 = float(lat2)
+    long2 = float(long2)
+
+    # ported from the TinyGPS Arduino library
+    # returns distance in meters between two positions, both specified 
+    # as signed decimal-degrees latitude and longitude. Uses great-circle 
+    # distance computation for hypothetical sphere of radius 6372795 meters.
+    # Because Earth is no exact sphere, rounding errors may be up to 0.5%.
+    # Courtesy of Maarten Lamers
+    delta = math.radians(long1-long2)
+    sdlong = math.sin(delta)
+    cdlong = math.cos(delta)
+    lat1_r = math.radians(lat1)
+    lat2_r = math.radians(lat2)
+    slat1 = math.sin(lat1_r)
+    clat1 = math.cos(lat1_r)
+    slat2 = math.sin(lat2_r)
+    clat2 = math.cos(lat2_r)
+    delta = (clat1 * slat2) - (slat1 * clat2 * cdlong) # why?
+    delta = math.pow(delta, 2)
+    delta += math.pow( (clat2 * sdlong), 2 )
+    delta = math.sqrt(delta)
+    denom = (slat1 * slat2) + (clat1 * clat2 * cdlong)
+    delta = math.atan2(delta, denom)
+    return delta * 6372795
 
 
 
@@ -303,13 +343,15 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
 
         s1 = f.readline()
         s1 = s1[:-1]
-        s1 += ",pm 2.5,pm 10,O2,NO2,SO2,NH3" # adding these to the headers
+        s1 += ",pm 2.5,pm 10,O2,NO2,SO2,NH3,Distance (m)" # adding these to the headers
         #print(s1)
         
         if LOGGING_PROFILE == 4:
             outfile.write("%s\n" % (s1))
         elif LOGGING_PROFILE == 3:
-            outfile.write("Time,GPS Latitude,GPS Longitude,Temperature\n")
+            outfile.write("Time,GPS Latitude,GPS Longitude,Temperature, Distance (m)\n")
+        else:
+            outfile.write("%s\n" % (s1))
 
         linenum = 1
         total_log_lines = total_log_lines+1
@@ -473,6 +515,17 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
             temperature = datum[30]
             uv = datum[31]
             wind = datum[32]
+
+            # check to make sure GPS is valid
+            gps_good = False
+            if float(gps_longitude) >= -180 and float(gps_longitude) <= 180:
+                if float(gps_latitude) >= -90 and float(gps_latitude) <= 90:
+                    gps_good = True
+
+            if gps_good == False:
+                # gotta skip this line
+                num_gps_incorrect += 1
+                skippy = True
             
             if append_count >= urad_ind_start+6: # checking to see if the uradmonitor data was logged properly
 
@@ -535,21 +588,46 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
                 if include_item == True:
                     item += str(point) + ","
                 point_index = point_index+1
+            
+            # add the distance
+            if linenum > 0 and checkToIncludeThisItem(40) and skippy == False: # arbitrary for distance
+                # check if either of the points was 0.0, this means the gps signal was lost
+                # so add 0 distance for this scenario
+                if float(gps_latitude) == 0.0 or float(gps_longitude) == 0.0:
+                    distance = 0.0
+                elif float(prev_gps_lat) == 0.0 or float(prev_gps_lon) == 0.0:
+                    distance = 0.0;
+                else:
+                    distance = distanceBetween(gps_latitude, gps_longitude, prev_gps_lat, prev_gps_lon)
+                    if distance >= 30: # it's most likely an error
+                        distance = 0.0
+                total_distance += distance
+                item += str(distance) + ","
+
+            # remove the last comma
             item = item[:-1]
 
             if skippy == False:
                 outfile.write("%s\n" % (item))
                 print("wrote line #%d from log #%d" % (linenum, log_count))
 
+                prev_gps_lat = gps_latitude
+                prev_gps_lon = gps_longitude
+
                 linenum = linenum+1
                 total_log_lines = total_log_lines+1
+            else:
+                linenum = linenum+1
+                skippy = False
 
 outfile.close()
 apioutfile.close()
 autonoutfile.close()
 print("-----------------")
-print("job complete. wrote %d total lines (%d were api events, %d were auton events), with %d unicode errors" % (total_log_lines, api_event_count, auton_event_count, num_unicode_errors));
-
+print("job complete. wrote %d total lines (%d were api events, %d were auton events), with %d unicode errors and %d gps errors" % (total_log_lines, api_event_count, auton_event_count, num_unicode_errors, num_gps_incorrect));
+print("-----------------")
+print("dir, data points, api events, autonomous events, total distance (m)")
+print("%s, %d, %d, %d, %.2f" % (DIR, (total_log_lines-api_event_count-auton_event_count), api_event_count, auton_event_count, total_distance))
 
 
 
