@@ -518,9 +518,16 @@ for log_count in range(0, NUM_LOGS): # go through each of the log files
 
             # check to make sure GPS is valid
             gps_good = False
-            if float(gps_longitude) >= -180 and float(gps_longitude) <= 180:
-                if float(gps_latitude) >= -90 and float(gps_latitude) <= 90:
-                    gps_good = True
+            
+            try:
+                if float(gps_longitude) >= -180 and float(gps_longitude) <= 180:
+                    if float(gps_latitude) >= -90 and float(gps_latitude) <= 90:
+                        gps_good = True
+            except ValueError:
+                print("!!! A ValueError has occured on this line:");
+                print(s)
+                print("We will skip it")
+                continue
 
             if gps_good == False:
                 # gotta skip this line
