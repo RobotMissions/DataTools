@@ -224,6 +224,7 @@ for total_filename in logfiles:
     f.close()
 
     f = open(total_filename, 'r', encoding="utf-8")
+    decode_error = False
     try:
         s1 = f.readline() # skip the first one, already read it previously
     except UnicodeDecodeError:
@@ -231,6 +232,7 @@ for total_filename in logfiles:
         print(s)
         print("We will skip it")
         num_unicode_errors += 1
+        decode_error = True
 
     #for line in f: # go through each of the lines
     for k in range(0, number_of_lines):
@@ -244,15 +246,18 @@ for total_filename in logfiles:
             print(s)
             print("We will skip it")
             num_unicode_errors += 1
+            decode_error = True
             continue
         
-        splittystring = s.split(",")
+        if decode_error == False:
 
-        item = splittystring[0]
+            splittystring = s.split(",")
 
-        if item != ' ' and item != '' and item != '\n':
-            this_run_time = rd.account_for_time(item, total_filename)
-            total_run_time += this_run_time
+            item = splittystring[0]
+
+            if item != ' ' and item != '' and item != '\n':
+                this_run_time = rd.account_for_time(item, total_filename)
+                total_run_time += this_run_time
 
 
             # print('this_run_time:  {}; total so far {}'.format(this_run_time, total_run_time))
