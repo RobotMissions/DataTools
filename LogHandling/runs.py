@@ -263,7 +263,12 @@ for total_filename in logfiles:
             # print('this_run_time:  {}; total so far {}'.format(this_run_time, total_run_time))
 
 
-total_run_time += rd.close(total_filename)
+try:
+    total_run_time += rd.close(total_filename)
+except TypeError:
+    print("!!! A TypeError occured");
+    print("Most likely because the log is empty");
+
 print("-----------------");
 
 print('run durations')
